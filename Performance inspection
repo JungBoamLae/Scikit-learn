@@ -216,7 +216,20 @@ plt.plot([0.0, 4.837e-3], [0.4368, 0.4368], "r:")  # Not shown
 plt.plot([4.837e-3], [0.4368], "ro")               # Not shown
 save_fig("roc_curve_plot")                         # Not shown
 plt.show()
-
-
+----------------------------------------------------------------------------------------------
 from sklearn.metrics import roc_auc_score
 roc_auc_score(y_train_5, y_scores_1)
+from sklearn.preprocessing import StandardScaler
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train.astype(np.float64))
+cross_val_score(sgd_clf, X_train_scaled, y_train, cv=3, scoring="accuracy")
+
+y_train_pred = cross_val_predict(sgd_clf, X_train_scaled, y_train, cv=3)
+conf_mx = confusion_matrix(y_train, y_train_pred)
+
+plt.matshow(conf_mx, cmap=plt.cm.gray)
+save_fig("confusion_matrix_plot", tight_layout=False)
+plt.show()
+
+row_sums = conf_mx.sum(axis=1, keepdims=True)
+norm_conf_mx = conf_mx / row_sums
