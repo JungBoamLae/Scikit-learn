@@ -1,0 +1,92 @@
+# Scikit-learn
+'''
+1. train 데이터를 train_test_split 매소드를 이용하여서 0.2 테스트 비율로 분리 
+2. 개별 알고리즘 정확도 계산 (fit, predict)  
+3. cross_val_score 매소드 사용하셔서 교차검증 수행(cv = 5) - 가장 성능좋은 알고리즘 택1
+4. = {'max_depth':[2,3,5,10], 'min_samples_split':[2,3,5], 'min_samples_leaf':[1,5,8]}
+'''
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+#%matplotlib inline
+
+titanic_df = pd.read_csv('D:/titanic/train.csv')
+titanic_df.head(3)
+
+from sklearn.preprocessing import LabelEncoder
+
+def fillna(df):
+    df['Age'].fillna(df['Age'].mean(),inplace=True)
+    df['Cabin'].fillna('N',inplace=True)
+    df['Embarked'].fillna('N',inplace=True)
+    df['Fare'].fillna(0,inplace=True)
+    return df
+
+def drop_features(df):
+    df.drop(['PassengerId','Name','Ticket'],axis=1,inplace=True)
+    return df
+
+def format_features(df):
+    df['Cabin'] = df['Cabin'].str[:1]
+    features = ['Cabin','Sex','Embarked']
+    for feature in features:
+        le = LabelEncoder()
+        le = le.fit(df[feature])
+        df[feature] = le.transform(df[feature])
+    return df
+
+def transform_features(df):
+    df = fillna(df)
+    df = drop_features(df)
+    df = format_features(df)
+    return df
+
+titanic_df = pd.read_csv('D:/titanic/train.csv')
+y_titanic_df = titanic_df['Survived']
+X_titanic_df= titanic_df.drop('Survived',axis=1)
+X_titanic_df = transform_features(X_titanic_df)
+
+from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score
+from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import GridSearchCV
+
+X_train, X_test, y_train, y_test = train_test_split(X_titanic_df,y_titanic_df,test_size=0.2, random_state=11)
+                                                    
+dt_clf = DecisionTreeClassifier(random_state=11)
+rf_clf = RandomForestClassifier(random_state=11)
+lr_clf = LogisticRegression(max_iter = 1000)
+
+dt_clf.fit(X_train,y_train)
+dt_pre = dt_clf.predict(X_train)
+print(cross_val_score(dt_clf, X_train, y_train, cv=5, scoring="accuracy"))
+
+rf_clf.fit(X_train,y_train)
+rf_pre = rf_clf.predict(X_train)
+print(cross_val_score(rf_clf, X_train, y_train, cv=5, scoring="accuracy"))
+
+lr_clf.fit(X_train,y_train)
+lr_pre = lr_clf.predict(X_train)
+print(cross_val_score(lr_clf, X_train, y_train, cv=5, scoring="accuracy"))
+
+dtree = DecisionTreeClassifier()
+parameters = {'max_depth':[2,3,5,10], 'min_samples_split':[2,3,5], 'min_samples_leaf':[1,5,8]}
+
+cross_val_score(dt_clf, X_train, y_train, cv=5, scoring="accuracy")
+
+grid_rf = GridSearchCV(dtree, param_grid=parameters, cv=5, refit=True)
+grid_rf.fit(X_train, y_train)
+
+scores_df = pd.DataFrame(grid_rf.cv_results_)
+a = scores_df[['params', 'mean_test_score', 'rank_test_score', \
+           'split0_test_score', 'split1_test_score', 'split2_test_score']]
+    
+estimator = grid_rf.best_estimator_
+
+pred = estimator.predict(X_test)
+print('테스트 데이터 세트 정확도: {0:.4f}'.format(accuracy_score(y_test,pred)))
